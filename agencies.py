@@ -1,34 +1,32 @@
+#!/usr/bin/env python3
 # /// script
 # requires-python = ">=3.10"
-# dependencies = [
-#     "requests",
-# ]
+# dependencies = ["elasticsearch<9"]
 # ///
-# agencies.py
-import os
-import json
-import requests
+import os, json, sys
+from elasticsearch import Elasticsearch
 
-ELASTIC_URL = os.getenv("ELASTIC_URL")
-ELASTIC_INDEX = os.getenv("ELASTIC_INDEX")
-ELASTIC_USER = os.getenv("ELASTIC_USER")
-ELASTIC_PASS = os.getenv("ELASTIC_PASS")
-
-response = requests.post(
-    f"{ELASTIC_URL}/{ELASTIC_INDEX}/_search",
-    auth=(ELASTIC_USER, ELASTIC_PASS),
-    headers={"Content-Type": "application/json"},
-    json={
-        "query": {"match": {"content_type": "government_organisation"}},
-        "_source": ["content_type", "nid", "title", "url", "field_url"],
-        "sort": ["url"],
-        "size": 10000,
-    },
+es = Elasticsearch(
+    hosts=[os.getenv("ELASTIC_URL")],
+    basic_auth=(os.getenv("ELASTIC_USER"), os.getenv("ELASTIC_PASS")),
 )
 
 agencies = [
-    {key: hit["_source"][key][0] for key in ("title", "nid", "url")}
-    for hit in response.json()["hits"]["hits"]
+    {k: hit["_source"][k][0] for k in ("title", "nid", "url")}
+    for hit in es.search(
+        index=os.getenv("ELASTIC_INDEX"),
+        query={"match": {"content_type": "government_organisation"}},
+        _source=["title", "nid", "url"],
+        sort="url",
+        size=10000,
+    )["hits"]["hits"]
 ]
 
-print(json.dumps(agencies, indent=2))
+output = json.dumps(agencies, indent=2)
+
+if len(sys.argv) > 1:
+    with open(sys.argv[1], "w") as f:
+        f.write(output)
+    print(f"Wrote {len(agencies)} agencies to {sys.argv[1]}")
+else:
+    print(output)
