@@ -28,7 +28,7 @@ jobs:
         run: uv run agencies.py agencies.json
 
       - name: Commit if agencies.json changed
-        uses: stefanzweifel/git-auto-commit-action@v5
+        uses: stefanzweifel/git-auto-commit-action@v6
         with:
           commit_message: "Update agencies.json"
           file_pattern: agencies.json
