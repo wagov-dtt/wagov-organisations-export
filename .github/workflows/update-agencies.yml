@@ -1,0 +1,32 @@
+name: Update agencies.json
+
+on:
+  schedule:
+    - cron: '0 * * * *'
+  workflow_dispatch:
+
+jobs:
+  update:
+    environment: prod
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v1
+
+      - name: Update agencies.json
+        env:
+          ELASTIC_URL: ${{ secrets.ELASTIC_URL }}
+          ELASTIC_INDEX: ${{ secrets.ELASTIC_INDEX }}
+          ELASTIC_USER: ${{ secrets.ELASTIC_USER }}
+          ELASTIC_PASS: ${{ secrets.ELASTIC_PASS }}
+        run: uv run agencies.py > agencies.json
+
+      - name: Commit if agencies.json changed
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "Update agencies.json"
+          file_pattern: agencies.json
