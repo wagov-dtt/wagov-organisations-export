@@ -7,7 +7,6 @@
 # agencies.py
 import os
 import json
-import base64
 import requests
 
 ELASTIC_URL = os.getenv("ELASTIC_URL")
