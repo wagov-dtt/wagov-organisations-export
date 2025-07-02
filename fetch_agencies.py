@@ -1,8 +1,4 @@
 #!/usr/bin/env python3
-# /// script
-# requires-python = ">=3.10"
-# dependencies = ["elasticsearch<9"]
-# ///
 import os, json, sys
 from elasticsearch import Elasticsearch
 

@@ -25,7 +25,7 @@ jobs:
           ELASTIC_INDEX: ${{ secrets.ELASTIC_INDEX }}
           ELASTIC_USER: ${{ secrets.ELASTIC_USER }}
           ELASTIC_PASS: ${{ secrets.ELASTIC_PASS }}
-        run: uv run agencies.py agencies.json
+        run: uv run fetch_agencies.py agencies.json
 
       - name: Commit if agencies.json changed
         uses: stefanzweifel/git-auto-commit-action@v6
