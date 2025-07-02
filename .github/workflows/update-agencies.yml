@@ -2,7 +2,7 @@ name: Update agencies.json
 
 on:
   schedule:
-    - cron: '0 * * * *'
+    - cron: '37 * * * *' # avoid start of hour contention
   workflow_dispatch:
 
 jobs:
