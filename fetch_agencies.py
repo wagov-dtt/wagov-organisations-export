@@ -1,32 +1,76 @@
 #!/usr/bin/env python3
-import os, json, sys
-from elasticsearch import Elasticsearch
+import json
+import os
+import sys
+from pathlib import Path
+from urllib.parse import quote
 
-# Setup Elasticsearch client
-es = Elasticsearch(
-    hosts=[os.getenv("ELASTIC_URL")],
-    basic_auth=(os.getenv("ELASTIC_USER"), os.getenv("ELASTIC_PASS")),
-)
+import urllib3
 
-# Search for nodes of government_organisation content_type in drupal index
-agencies = [
-    {k: hit["_source"][k][0] for k in ("title", "nid", "url")}
-    for hit in es.search(
-        index=os.getenv("ELASTIC_INDEX"),
-        query={"match": {"content_type": "government_organisation"}},
-        _source=["title", "nid", "url"],
-        sort="url",
-        size=10000,
-    )["hits"]["hits"]
-]
 
-# Format as pretty JSON to make diffs nice
-output = json.dumps(agencies, indent=2)
+FIELDS = ("title", "nid", "url")
 
-# Write to file if provided, otherwise print to stdout
-if len(sys.argv) > 1:
-    with open(sys.argv[1], "w") as f:
-        f.write(output)
-    print(f"Wrote {len(agencies)} agencies to {sys.argv[1]}")
-else:
-    print(output)
+
+def require_env(name: str) -> str:
+    value = os.getenv(name)
+    if not value:
+        raise SystemExit(f"Missing required environment variable: {name}")
+    return value
+
+
+def first_value(source: dict, key: str):
+    value = source[key]
+    return value[0] if isinstance(value, list) else value
+
+
+def fetch_agencies() -> list[dict]:
+    base_url = require_env("ELASTIC_URL").rstrip("/")
+    index = quote(require_env("ELASTIC_INDEX"), safe=",*")
+    auth = f"{require_env('ELASTIC_USER')}:{require_env('ELASTIC_PASS')}"
+
+    body = {
+        "query": {"match": {"content_type": "government_organisation"}},
+        "_source": list(FIELDS),
+        "sort": "url",
+        "size": 10000,
+    }
+    headers = {
+        "Accept": "application/json",
+        "Content-Type": "application/json",
+        **urllib3.make_headers(basic_auth=auth),
+    }
+
+    response = urllib3.PoolManager(
+        timeout=urllib3.Timeout(connect=10.0, read=60.0)
+    ).request(
+        "POST",
+        f"{base_url}/{index}/_search",
+        body=json.dumps(body).encode(),
+        headers=headers,
+    )
+
+    if response.status >= 400:
+        raise SystemExit(
+            f"Elasticsearch search failed: HTTP {response.status} "
+            f"{response.data.decode('utf-8', 'replace')}"
+        )
+
+    payload = json.loads(response.data)
+    return [
+        {key: first_value(hit["_source"], key) for key in FIELDS}
+        for hit in payload["hits"]["hits"]
+    ]
+
+
+def main() -> None:
+    output = json.dumps(fetch_agencies(), indent=2)
+
+    if len(sys.argv) > 1:
+        Path(sys.argv[1]).write_text(output)
+        print(f"Wrote agencies to {sys.argv[1]}")
+    else:
+        print(output)
+
+
+if __name__ == "__main__":
+    main()
