@@ -2,4 +2,4 @@
 name = "wagov-organisations-export"
 version = "0.1.0"
 requires-python = ">=3.13"
-dependencies = ["elasticsearch<9"]
+dependencies = ["elasticsearch<10"]
