@@ -14,10 +14,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4.3.1
 
       - name: Set up uv
-        uses: astral-sh/setup-uv@v6
+        uses: astral-sh/setup-uv@v6.8.0
 
       - name: Update agencies.json
         env:
@@ -28,7 +28,7 @@ jobs:
         run: uv run fetch_agencies.py agencies.json
 
       - name: Commit if agencies.json changed
-        uses: stefanzweifel/git-auto-commit-action@v6
+        uses: stefanzweifel/git-auto-commit-action@v6.0.1
         with:
           commit_message: "Update agencies.json"
           file_pattern: agencies.json
